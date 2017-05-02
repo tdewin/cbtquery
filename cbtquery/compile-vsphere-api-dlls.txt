@@ -1,0 +1,49 @@
+
+
+
+
+#https://pubs.vmware.com/vsphere-60/topic/com.vmware.ICbase/PDF/wssdk_600_dsg.pdf
+
+
+#Download and install the Microsoft .NET Framework 2.0 SDK (x64) from
+#http://www.microsoft.com/en-us/download/details.aspx?id=15354
+#not working like a charm
+#Extract exe with 7-zip, and use install.exe
+#http://stackoverflow.com/questions/13980882/installing-net-2-0-sdk-on-windows-8
+
+
+#Download and install Microsoft Web Services Enhancements (WSE) 3.0 from
+http://www.microsoft.com/en-us/download/details.aspx?id=14089
+
+#do not use quotes for variables as described in the pdf in dev console, SSO will fail 
+set WSE_HOME=C:\Program Files (x86)\Microsoft WSE\v3.0
+set PATH=%PATH%;%WSE_HOME%\Tools
+set WS_SDK_HOME=C:\Users\timothy\Documents\vsphereapi\SDK
+set WSDLHOME=%WS_SDK_HOME%\vsphere-ws\wsdl\vim25
+set VSINSTALLDIR=C:\Program Files (x86)\Microsoft Visual Studio 14.0
+
+#compile sso from visual studio dev console
+cd %WS_SDK_HOME%\ssoclient\dotnet\cs\samples
+.\build.bat
+copy lib\STSService.dll %WS_SDK_HOME%\vsphere-ws\dotnet\cs\samples\lib\.
+
+#building dlls (Vim & Vim25)
+cd %WS_SDK_HOME%\vsphere-ws\dotnet\cs\samples
+wsewsdl3.exe /n:Vim25Api /type:webClient /l:CS %WSDLHOME%\vim.wsdl %WSDLHOME%\vimService.wsdl
+csc /t:library /out:Vim25Service.dll /r:"%WSE_HOME%\Microsoft.Web.Services3.dll" VimService.cs
+sgen /p Vim25Service.dll
+#edit file VimService.cs
+#replace [System.Xml.Serialization.XmlIncludeAttribute
+#with //[System.Xml.Serialization.XmlIncludeAttribute
+#anotate VimService class
+#[System.Xml.Serialization.XmlSerializerAssemblyAttribute(AssemblyName ="Vim25Service.XmlSerializers")]
+#recompile dll
+csc /t:library /out:Vim25Service.dll /r:"%WSE_HOME%\Microsoft.Web.Services3.dll" VimService.cs
+copy Vim25Service*.dll lib
+
+#open solution SDK\vsphere-ws\dotnet\cs\samples\Samples2008.sln
+#convert csprojects
+#build solution
+#open SDK\vsphere-ws\dotnet\cs\samples\SimpleClient\bin\Debug>
+#should contain simpleclient.exe
+#this will also compile other dlls like apputil (not really required but used by cbtquery to do all the argument parsing and connection handling)
